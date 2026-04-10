@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אימון לוח הכפל</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            padding: 5px; /* רווח כללי קטן יותר */
+            box-sizing: border-box;
+        }
+        .container {
+            max-height: 50vh; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0;
+            width: 98%;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #333;
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+        #message {
+            margin: 5px 0;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-align: center;
+            min-height: 1.2em;
+        }
+        table {
+            border-collapse: collapse;
+            margin-top: 5px;
+            direction: ltr;
+            table-layout: fixed;
+            width: 100%;
+            max-width: 400px;
+        }
+        td, th {
+            width: calc(100% / 11);
+            height: 28px;
+            min-width: 25px;
+            border: 1px solid #ccc;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 0.85em;
+            box-sizing: border-box;
+            position: relative;
+            padding: 0;
+        }
+        th {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+        td.factor {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+        td .answer-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        td.highlighted {
+            border: 2px solid red;
+        }
+        .correct-answer {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .incorrect-answer {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 עמודות כעת */
+            gap: 5px;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f0f0f0;
+            width: 98%;
+            max-width: 300px; /* צמצמתי רוחב המקלדת כדי שתהיה צפופה יותר */
+            box-sizing: border-box;
+        }
+        .keyboard button {
+            width: 100%;
+            height: 35px;
+            padding: 0;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            line-height: 1;
+        }
+        .keyboard button:active {
+            background-color: #0056b3;
+            transform: scale(0.95);
+        }
+        .keyboard button.delete {
+            background-color: #dc3545;
+        }
+        .keyboard button.enter {
+            background-color: #28a745;
+        }
+        .keyboard button[data-key="delete"] {
+            font-size: 1.2em;
+        }
+        .keyboard button[data-key="enter"] {
+            font-size: 1.2em;
+        }
+
+        .page-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px; /* רוחב מקסימלי לכל התוכן יחד */
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content-wrapper">
+        <div class="container">
+            <h1>אימון לוח הכפל</h1>
+            <div id="message"></div>
+            <table id="multiplicationTable">
+                <thead>
+                    <tr>
+                        <th>X</th>
+                        <th>1</th>
+                        <th>2</th>
+                        <th>3</th>
+                        <th>4</th>
+                        <th>5</th>
+                        <th>6</th>
+                        <th>7</th>
+                        <th>8</th>
+                        <th>9</th>
+                        <th>10</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- הטבלה תמולא על ידי JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="keyboard">
+            <!-- שורה 1: 1 2 3 -->
+            <button data-key="1">1</button>
+            <button data-key="2">2</button>
+            <button data-key="3">3</button>
+            <!-- שורה 2: 4 5 6 -->
+            <button data-key="4">4</button>
+            <button data-key="5">5</button>
+            <button data-key="6">6</button>
+            <!-- שורה 3: 7 8 9 -->
+            <button data-key="7">7</button>
+            <button data-key="8">8</button>
+            <button data-key="9">9</button>
+            <!-- שורה 4: אנטר 0 בקספייס -->
+            <button data-key="enter" class="enter">↵</button>
+            <button data-key="0">0</button>
+            <button data-key="delete" class="delete">⌫</button>
+        </div>
+    </div>
+
+    <script>
+        const tableBody = document.querySelector('#multiplicationTable tbody');
+        const messageDiv = document.getElementById('message');
+        const keyboard = document.querySelector('.keyboard');
+
+        let currentCell = null;
+        let currentAnswerInput = '';
+        let correctAnswersCount = 0;
+        const totalQuestions = 10;
+        let askedCells = new Set();
+
+        function createTable() {
+            for (let i = 1; i <= 10; i++) {
+                const row = document.createElement('tr');
+                const factorCell = document.createElement('td');
+                factorCell.classList.add('factor');
+                factorCell.textContent = i;
+                row.appendChild(factorCell);
+
+                for (let j = 1; j <= 10; j++) {
+                    const cell = document.createElement('td');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    const answerDisplay = document.createElement('div');
+                    answerDisplay.classList.add('answer-display');
+                    cell.appendChild(answerDisplay);
+                    row.appendChild(cell);
+                }
+                tableBody.appendChild(row);
+            }
+        }
+
+        function selectRandomCell() {
+            if (correctAnswersCount >= totalQuestions) {
+                messageDiv.textContent = `כל הכבוד! סיימת את כל ${totalQuestions} השאלות בהצלחה!`;
+                messageDiv.classList.remove('incorrect-answer');
+                messageDiv.classList.add('correct-answer');
+                if (currentCell) {
+                    currentCell.classList.remove('highlighted');
+                }
+                keyboard.style.display = 'none';
+                return;
+            }
+
+            if (currentCell) {
+                currentCell.classList.remove('highlighted');
+                if (!currentCell.classList.contains('correct-answer')) {
+                    currentCell.querySelector('.answer-display').textContent = currentCell.dataset.row * currentCell.dataset.col;
+                }
+            }
+            currentAnswerInput = '';
+
+            let randomRow, randomCol;
+            let cellKey;
+
+            if (askedCells.size >= 10 * 10) {
+                 messageDiv.textContent = `אין יותר שאלות ייחודיות! כל הכבוד!`;
+                 keyboard.style.display = 'none';
+                 return;
+            }
+
+            do {
+                randomRow = Math.floor(Math.random() * 10) + 1;
+                randomCol = Math.floor(Math.random() * 10) + 1;
+                cellKey = `${randomRow}-${randomCol}`;
+            } while (askedCells.has(cellKey));
+
+            askedCells.add(cellKey);
+
+            const cells = tableBody.querySelectorAll('td[data-row]');
+            let targetCell = null;
+            cells.forEach(cell => {
+                if (parseInt(cell.dataset.row) === randomRow && parseInt(cell.dataset.col) === randomCol) {
+                    targetCell = cell;
+                }
+            });
+
+            if (targetCell) {
+                currentCell = targetCell;
+                currentCell.classList.remove('correct-answer', 'incorrect-answer');
+                currentCell.classList.add('highlighted');
+                currentCell.querySelector('.answer-display').textContent = '';
+                messageDiv.textContent = ``;
+                messageDiv.classList.remove('correct-answer', 'incorrect-answer');
+            }
+        }
+
+        function updateAnswerDisplay() {
+            if (currentCell) {
+                currentCell.querySelector('.answer-display').textContent = currentAnswerInput;
+            }
+        }
+
+        function checkAnswer() {
+            if (!currentCell || currentAnswerInput === '') {
+                messageDiv.textContent = 'אנא הכניסי מספר.';
+                messageDiv.classList.remove('correct-answer');
+                messageDiv.classList.add('incorrect-answer');
+                return;
+            }
+
+            const row = parseInt(currentCell.dataset.row);
+            const col = parseInt(currentCell.dataset.col);
+            const correctAnswer = row * col;
+            const userAnswer = parseInt(currentAnswerInput);
+
+            if (userAnswer === correctAnswer) {
+                messageDiv.textContent = 'כל הכבוד! תשובה נכונה!';
+                messageDiv.classList.remove('incorrect-answer');
+                messageDiv.classList.add('correct-answer');
+                currentCell.classList.add('correct-answer');
+                correctAnswersCount++;
+                setTimeout(selectRandomCell, 1000);
+            } else {
+                messageDiv.textContent = 'אופס! נסי שוב.';
+                messageDiv.classList.remove('correct-answer');
+                messageDiv.classList.add('incorrect-answer');
+                currentCell.classList.add('incorrect-answer');
+                setTimeout(() => {
+                    currentCell.classList.remove('incorrect-answer');
+                    currentAnswerInput = '';
+                    updateAnswerDisplay();
+                }, 500);
+            }
+        }
+
+        keyboard.addEventListener('click', function(event) {
+            const button = event.target.closest('button');
+            if (!button || !currentCell || currentCell.classList.contains('correct-answer')) return;
+
+            const key = button.dataset.key;
+
+            if (key >= '0' && key <= '9') {
+                if (currentAnswerInput.length < 3) {
+                    currentAnswerInput += key;
+                }
+            } else if (key === 'delete') {
+                currentAnswerInput = currentAnswerInput.slice(0, -1);
+            } else if (key === 'enter') {
+                checkAnswer();
+            }
+            updateAnswerDisplay();
+        });
+
+        createTable();
+        selectRandomCell();
+    </script>
+</body>
+</html>
